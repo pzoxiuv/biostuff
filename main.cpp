@@ -1,14 +1,8 @@
 #include <string>
 #include <iostream>
 #include <fstream>
-#include <numeric>
-#include <functional>
-#include <unordered_map>
-#include <vector>
 #include <algorithm>
 #include <climits>
-#include <string.h>
-
 #include "encoding.h"
 
 typedef struct {
@@ -182,7 +176,6 @@ float calc_entropy(result_t res)
 		for (unsigned int j=0; j<4; j++) {	// current letter
 			tmp = 0;
 			for (unsigned int k=0; k < res.subseq_vect.size(); k++) {	// current subseq
-				//if (res.subseq_vect[k][i] == alphabet[j]) {
 				if (deencoded_strs[k][i] == alphabet[j]) {
 					tmp++;
 				}
