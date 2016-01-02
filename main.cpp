@@ -15,24 +15,17 @@ typedef struct {
 
 typedef struct {
 	unsigned int mismatch_count;
-	//std::vector<std::string> subseq_vect;
 	std::vector<enc_t> subseq_vect;
 } result_t;
 
 std::string read_genome(std::ifstream &samples);
-unsigned int count_mismatches(const std::string& s1, const std::string& s2,
-					unsigned int len, unsigned int bail_len);
-unsigned int count_mismatches2(const char *s1, const char *s2,
-					unsigned int len, unsigned int bail_len);
-unsigned int count_mismatches3(enc_t s1, enc_t s2,
+unsigned int count_mismatches(enc_t s1, enc_t s2,
 				unsigned int len, unsigned int bail_len);
 bool results_comp(result_t r1, result_t r2);
 void print_results(std::vector<result_t> results_vect);
 float calc_entropy(result_t res);
 enc_t enc_substr(std::string s);
 std::string deencode(enc_t e);
-
-const int MAX_MISMATCHES = 7;
 
 const uint8_t a_enc = 0x1;
 const uint8_t c_enc = 0x2;
@@ -49,13 +42,10 @@ int main(int argc, char **argv)
 	unsigned int num_genes;
 	unsigned int i, j, k;
 
-	//std::string cur_gene;
 	std::string gene_s;
-	//std::vector<char *> cur_gene;
 	std::vector<enc_t >cur_gene;
 	std::string genes[39];	// what would be more idiomatic than an array?
 
-	//std::vector<char *> gene_substrs[39];
 	std::vector<enc_t> gene_substrs[39];
 	std::vector<result_t> results_vect;
 
@@ -70,9 +60,6 @@ int main(int argc, char **argv)
 	// iterate through each substr of gene ("sliding window"), add to its list of substrs
 	for (i=0; i<num_genes; i++) {
 			for (j=0; j<(genes[i].size() - substr_size + 1); j++) {
-				//char *s = new char[20];	// need these till the end so won't bother delete'ing them
-				//memcpy(s, (genes[i].substr(j, substr_size)).c_str(), substr_size);
-				//gene_substrs[i].push_back(s);
 				gene_substrs[i].push_back(enc_substr(genes[i].substr(j, substr_size)));
 			}
 	}
@@ -83,10 +70,8 @@ int main(int argc, char **argv)
 		cur_gene = gene_substrs[k];
 
 		for (i=0; i<cur_gene.size(); i++) {
-			//char *cur_substr = cur_gene[i];
 
 			unsigned int least_mismatches[num_genes];
-			//std::string least_mismatches_strs[num_genes];
 			enc_t least_mismatches_strs[num_genes];
 
 			// for each gene, find substr in that gene with least mismatches to current subseq in cur_gene
@@ -97,21 +82,12 @@ int main(int argc, char **argv)
 				least_mismatches[j] = INT_MAX;
 
 				// iterate over substrs, see how many mismatches they have with current first gene's substr
-				//for (auto it2 = gene_substrs[j].begin(); it2 != gene_substrs[j].end(); ++it2) {
 				for (unsigned int m = 0; m < gene_substrs[j].size(); m++) {
-					//char *gene_substr = *it2;
-					//char *gene_substr = gene_substrs[j][m];
-					//unsigned int mismatches = count_mismatches(cur_substr, gene_substr,
-					//				substr_size, least_mismatches[j]);
-					//unsigned int mismatches = count_mismatches2(cur_substr, gene_substr,
-					//unsigned int mismatches = count_mismatches2(cur_gene[i], gene_substrs[j][m],
-					//				substr_size, least_mismatches[j]);
-					unsigned int mismatches = count_mismatches3(cur_gene[i], gene_substrs[j][m],
+					unsigned int mismatches = count_mismatches(cur_gene[i], gene_substrs[j][m],
 									substr_size, least_mismatches[j]);
 
 					if (mismatches < least_mismatches[j]) {
 						least_mismatches[j] = mismatches;
-						//least_mismatches_strs[j] = gene_substr;
 						least_mismatches_strs[j] = gene_substrs[j][m];
 					}
 				}
@@ -124,7 +100,6 @@ int main(int argc, char **argv)
 				cur_res.mismatch_count += least_mismatches[j];
 				cur_res.subseq_vect.push_back(least_mismatches_strs[j]);
 			}
-			//cur_res.subseq_vect.push_back(cur_substr);
 			cur_res.subseq_vect.push_back(cur_gene[i]);
 
 			results_vect.push_back(cur_res);
@@ -162,33 +137,7 @@ std::string read_genome(std::ifstream &samples)
 	return s;
 }
 
-unsigned int count_mismatches(const std::string& s1, const std::string& s2,
-				unsigned int len, unsigned int bail_len)
-{
-	unsigned int m = 0, i = 0;
-	for (i=0; i<len; i++) {
-		if (s1[i] != s2[i]) {
-			m++;
-			if (m >= bail_len) break;	// change to strictly gt to get all substrs that are best len
-		}
-	}
-	return m;
-}
-
-unsigned int count_mismatches2(const char *s1, const char *s2,
-				unsigned int len, unsigned int bail_len)
-{
-	unsigned int m = 0, i = 0;
-	for (i=0; i<len; i++) {
-		if (s1[i] != s2[i]) {
-			m++;
-			if (m >= bail_len) break;	// change to strictly gt to get all substrs that are best len
-		}
-	}
-	return m;
-}
-
-unsigned int count_mismatches3(enc_t s1, enc_t s2,
+unsigned int count_mismatches(enc_t s1, enc_t s2,
 				unsigned int len, unsigned int bail_len)
 {
 	uint64_t cnt1 = 0, cnt2 = 0;
@@ -217,7 +166,6 @@ void print_results(std::vector<result_t> results_vect)
 	for (i=0; i<10; i++) {
 		std::cout << calc_entropy(results_vect[i]) << ":\n";
 		for (j=0; j<results_vect[i].subseq_vect.size(); j++) {
-			//std::cout << "\t" << results_vect[i].subseq_vect[j] << "\n";
 			std::cout << "\t" << deencode(results_vect[i].subseq_vect[j]) << "\n";
 		}
 	}
