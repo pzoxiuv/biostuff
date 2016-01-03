@@ -1,14 +1,13 @@
 #include <string>
 #include <iostream>
-#include <fstream>
 #include <algorithm>
 #include <climits>
 
 #include "encoding.h"
 #include "entropy.h"
 #include "main.h"
+#include "parse_file.h"
 
-std::string read_genome(std::ifstream &samples);
 unsigned int count_mismatches(enc_t s1, enc_t s2,
 				unsigned int len, unsigned int bail_len);
 bool results_comp(result_t r1, result_t r2);
@@ -17,26 +16,17 @@ void print_results(std::vector<result_t> results_vect);
 int main(int argc, char **argv)
 {
 	unsigned int substr_size = 20;
-	unsigned int num_genes;
 	unsigned int i, j, k;
 
-	std::string gene_s;
 	std::vector<enc_t >cur_gene;
-	std::string genes[39];	// what would be more idiomatic than an array?
 
 	std::vector<enc_t> gene_substrs[39];
 	std::vector<result_t> results_vect;
 
-	std::ifstream samples("shewanella_phages.fasta");
-
-	num_genes = 0;
-	while(!((gene_s = read_genome(samples)).empty())) {
-		genes[num_genes] = gene_s;
-		num_genes++;
-	}
+	std::vector<std::string> genes = parse_file("shewanella_phages.fasta");
 
 	// iterate through each substr of gene ("sliding window"), add to its list of substrs
-	for (i=0; i<num_genes; i++) {
+	for (i=0; i<genes.size(); i++) {
 			for (j=0; j<(genes[i].size() - substr_size + 1); j++) {
 				gene_substrs[i].push_back(enc_substr(genes[i].substr(j, substr_size)));
 			}
@@ -44,17 +34,17 @@ int main(int argc, char **argv)
 
 	unsigned int best_match = INT_MAX;
 
-	for (k=0; k<num_genes; k++) {
+	for (k=0; k<genes.size(); k++) {
 		cur_gene = gene_substrs[k];
 
 		for (i=0; i<cur_gene.size(); i++) {
 
-			unsigned int least_mismatches[num_genes];
-			enc_t least_mismatches_strs[num_genes];
+			unsigned int least_mismatches[genes.size()];
+			enc_t least_mismatches_strs[genes.size()];
 
 			// for each gene, find substr in that gene with least mismatches to current subseq in cur_gene
 			#pragma omp parallel for
-			for (j=0; j<num_genes; j++) {
+			for (j=0; j<genes.size(); j++) {
 				if (j == k) continue;
 
 				least_mismatches[j] = INT_MAX;
@@ -73,7 +63,7 @@ int main(int argc, char **argv)
 
 			result_t cur_res;
 			cur_res.mismatch_count = 0;
-			for (j=0; j<num_genes; j++) {
+			for (j=0; j<genes.size(); j++) {
 				if (j == k) continue;
 				cur_res.mismatch_count += least_mismatches[j];
 				cur_res.subseq_vect.push_back(least_mismatches_strs[j]);
@@ -96,23 +86,6 @@ int main(int argc, char **argv)
 	print_results(results_vect);
 
 	return 0;
-}
-
-std::string read_genome(std::ifstream &samples)
-{
-	std::string s = "", cur_line;
-
-	while (true) {
-		std::getline(samples, cur_line);
-		if (cur_line.empty()) {
-			break;
-		} else if (cur_line.find("genome") != std::string::npos) {
-			continue;
-		} else {
-			s += cur_line;
-		}
-	}
-	return s;
 }
 
 unsigned int count_mismatches(enc_t s1, enc_t s2,
