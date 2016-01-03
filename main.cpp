@@ -21,40 +21,40 @@ int main(int argc, char **argv)
 	std::vector<enc_t >cur_gene;
 	std::vector<gene_t> genes = parse_file("shewanella_phages.fasta");
 
-	for (k=0; k<genes.size(); k++) {
-		cur_gene = genes[k].gene_substrs;
+	unsigned int *least_mismatches = new unsigned int[genes.size()];	// needed till end, don't delete
+	enc_t *least_mismatches_strs = new enc_t[genes.size()];
 
-		for (i=0; i<cur_gene.size(); i++) {
+	for (i=0; i<genes.size(); i++) {
+		cur_gene = genes[i].gene_substrs;
 
-			unsigned int least_mismatches[genes.size()];
-			enc_t least_mismatches_strs[genes.size()];
+		for (j=0; j<cur_gene.size(); j++) {
 
 			// for each gene, find substr in that gene with least mismatches to current subseq in cur_gene
 			#pragma omp parallel for
-			for (j=0; j<genes.size(); j++) {
-				if (j == k) continue;
+			for (k=0; k<genes.size(); k++) {
+				if (k == i) continue;
 
-				least_mismatches[j] = INT_MAX;
+				least_mismatches[k] = INT_MAX;
 
 				// iterate over substrs, see how many mismatches they have with current first gene's substr
-				for (unsigned int m = 0; m < genes[j].gene_substrs.size(); m++) {
-					unsigned int mismatches = count_mismatches(cur_gene[i], genes[j].gene_substrs[m]);
+				for (unsigned int m = 0; m < genes[k].gene_substrs.size(); m++) {
+					unsigned int mismatches = count_mismatches(cur_gene[j], genes[k].gene_substrs[m]);
 
-					if (mismatches < least_mismatches[j]) {
-						least_mismatches[j] = mismatches;
-						least_mismatches_strs[j] = genes[j].gene_substrs[m];
+					if (mismatches < least_mismatches[k]) {
+						least_mismatches[k] = mismatches;
+						least_mismatches_strs[k] = genes[k].gene_substrs[m];
 					}
 				}
 			}
 
 			result_t cur_res;
 			cur_res.mismatch_count = 0;
-			for (j=0; j<genes.size(); j++) {
-				if (j == k) continue;
-				cur_res.mismatch_count += least_mismatches[j];
-				cur_res.subseq_vect.push_back(least_mismatches_strs[j]);
+			for (k=0; k<genes.size(); k++) {
+				if (k == i) continue;
+				cur_res.mismatch_count += least_mismatches[k];
+				cur_res.subseq_vect.push_back(least_mismatches_strs[k]);
 			}
-			cur_res.subseq_vect.push_back(cur_gene[i]);
+			cur_res.subseq_vect.push_back(cur_gene[j]);
 
 			results_vect.push_back(cur_res);
 
@@ -64,7 +64,7 @@ int main(int argc, char **argv)
 			if (cur_res.mismatch_count < best_match) {
 				best_match = cur_res.mismatch_count;
 			} else {
-				i += (cur_res.mismatch_count - best_match);
+				j += (cur_res.mismatch_count - best_match);
 			}
 		}
 	}
@@ -88,11 +88,6 @@ unsigned int count_mismatches(enc_t s1, enc_t s2)
 	return (cnt1 + cnt2) >> 1;
 }
 
-bool results_comp(result_t r1, result_t r2)
-{
-	return calc_entropy(r1) < calc_entropy(r2);
-}
-
 void print_results(std::vector<result_t> results_vect)
 {
 	unsigned int i, j;
@@ -105,4 +100,9 @@ void print_results(std::vector<result_t> results_vect)
 			std::cout << "\t" << deencode(results_vect[i].subseq_vect[j]) << "\n";
 		}
 	}
+}
+
+bool results_comp(result_t r1, result_t r2)
+{
+	return calc_entropy(r1) < calc_entropy(r2);
 }

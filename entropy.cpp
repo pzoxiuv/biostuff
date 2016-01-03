@@ -24,7 +24,7 @@ float calc_entropy(result_t res)
 	}
 
 	for (unsigned int i=0; i<deencoded_strs[0].size(); i++) {	// char index into subseq
-		for (unsigned int j=0; j<4; j++) {	// current letter
+		for (unsigned int j=0; j<sizeof(alphabet); j++) {	// current letter
 			tmp = 0;
 			for (unsigned int k=0; k < res.subseq_vect.size(); k++) {	// current subseq
 				if (deencoded_strs[k][i] == alphabet[j]) {
