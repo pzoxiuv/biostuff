@@ -8,34 +8,21 @@
 #include "main.h"
 #include "parse_file.h"
 
-unsigned int count_mismatches(enc_t s1, enc_t s2,
-				unsigned int len, unsigned int bail_len);
+unsigned int count_mismatches(enc_t s1, enc_t s2);
 bool results_comp(result_t r1, result_t r2);
 void print_results(std::vector<result_t> results_vect);
 
 int main(int argc, char **argv)
 {
-	unsigned int substr_size = 20;
 	unsigned int i, j, k;
-
-	std::vector<enc_t >cur_gene;
-
-	std::vector<enc_t> gene_substrs[39];
-	std::vector<result_t> results_vect;
-
-	std::vector<std::string> genes = parse_file("shewanella_phages.fasta");
-
-	// iterate through each substr of gene ("sliding window"), add to its list of substrs
-	for (i=0; i<genes.size(); i++) {
-			for (j=0; j<(genes[i].size() - substr_size + 1); j++) {
-				gene_substrs[i].push_back(enc_substr(genes[i].substr(j, substr_size)));
-			}
-	}
-
 	unsigned int best_match = INT_MAX;
 
+	std::vector<result_t> results_vect;
+	std::vector<enc_t >cur_gene;
+	std::vector<gene_t> genes = parse_file("shewanella_phages.fasta");
+
 	for (k=0; k<genes.size(); k++) {
-		cur_gene = gene_substrs[k];
+		cur_gene = genes[k].gene_substrs;
 
 		for (i=0; i<cur_gene.size(); i++) {
 
@@ -50,13 +37,12 @@ int main(int argc, char **argv)
 				least_mismatches[j] = INT_MAX;
 
 				// iterate over substrs, see how many mismatches they have with current first gene's substr
-				for (unsigned int m = 0; m < gene_substrs[j].size(); m++) {
-					unsigned int mismatches = count_mismatches(cur_gene[i], gene_substrs[j][m],
-									substr_size, least_mismatches[j]);
+				for (unsigned int m = 0; m < genes[j].gene_substrs.size(); m++) {
+					unsigned int mismatches = count_mismatches(cur_gene[i], genes[j].gene_substrs[m]);
 
 					if (mismatches < least_mismatches[j]) {
 						least_mismatches[j] = mismatches;
-						least_mismatches_strs[j] = gene_substrs[j][m];
+						least_mismatches_strs[j] = genes[j].gene_substrs[m];
 					}
 				}
 			}
@@ -88,8 +74,7 @@ int main(int argc, char **argv)
 	return 0;
 }
 
-unsigned int count_mismatches(enc_t s1, enc_t s2,
-				unsigned int len, unsigned int bail_len)
+unsigned int count_mismatches(enc_t s1, enc_t s2)
 {
 	uint64_t cnt1 = 0, cnt2 = 0;
 	asm volatile (
